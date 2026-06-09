@@ -128,52 +128,33 @@
 
     async function analyzeAudio(file) {
       setStatus("Decoding audio...");
-      const { ctx, audioBuffer } = await decodeFileToAudioBuffer(file);
-
+    
+      const { audioBuffer } = await decodeFileToAudioBuffer(file);
+    
       const channel = audioBuffer.getChannelData(0);
       const sampleRate = audioBuffer.sampleRate;
-
-      setStatus("Loading aubio...");
-      const aubioModule = await aubio();
-      const { Pitch, Tempo } = aubioModule;
-
-      const bufferSize = 2048;
-      const hopSize = 512;
-
-      const pitchDetector = new Pitch("yin", bufferSize, hopSize, sampleRate);
-      const tempoDetector = new Tempo(bufferSize, hopSize, sampleRate);
-
+    
+      setStatus("Analyzing pitch...");
+    
+      const detectPitch = Pitchfinder.YIN({ sampleRate });
+    
+      const hopSize = 1024;
       const pitchFrames = [];
-      for (let i = 0; i + hopSize < channel.length; i += hopSize) {
+    
+      for (let i = 0; i < channel.length; i += hopSize) {
         const frame = channel.slice(i, i + hopSize);
-        const freq = pitchDetector.do(frame);
-        tempoDetector.do(frame);
-        pitchFrames.push(freq > 40 && freq < 2000 ? freq : null);
+        const freq = detectPitch(frame);
+        pitchFrames.push(freq || null);
       }
-
-      let bpm = tempoDetector.getBpm();
-      if (!bpm || !Number.isFinite(bpm)) bpm = 120;
-
+    
+      const bpm = 120; // placeholder
+    
       const frameDurationSec = hopSize / sampleRate;
       const noteEvents = groupPitchesToNotes(pitchFrames, frameDurationSec, bpm);
-
-      setStatus(`Done.\nEstimated BPM: ${Math.round(bpm)}\nDetected note events: ${noteEvents.length}`);
+    
+      setStatus(`Done. Notes detected: ${noteEvents.length}`);
+    
       renderScore(noteEvents);
-    }
-
-    analyzeBtn.addEventListener("click", async () => {
-      const file = fileInput.files?.[0];
-      if (!file) {
-        setStatus("Choose an audio file first.");
-        return;
-      }
-
-      try {
-        await analyzeAudio(file);
-      } catch (err) {
-        console.error(err);
-        setStatus("Analysis failed. See console for details.");
-      }
     });
   </script>
 </body>
