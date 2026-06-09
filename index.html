@@ -147,7 +147,7 @@
       const pitchFrames = [];
     
       for (let i = 0; i < channel.length; i += hopSize) {
-        const frame = channel.slice(i, i + hopSize);
+        const frame = channel.subarray(i, i + hopSize);
         const freq = detectPitch(frame);
         pitchFrames.push(freq || null);
       }
