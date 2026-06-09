@@ -137,7 +137,12 @@
       setStatus("Analyzing pitch...");
     
       const detectPitch = window.Pitchfinder?.YIN?.({ sampleRate });
-    
+
+      
+      if (!detectPitch) {
+        throw new Error("Pitchfinder failed to load.");
+      }
+
       const hopSize = 1024;
       const pitchFrames = [];
     
